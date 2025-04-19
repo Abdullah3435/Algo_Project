@@ -59,7 +59,7 @@ class Server:
         return f"Server-{self.server_id}(processing_rate={self.processing_rate}, queue_size={len(self.queue)}/{self.max_queue_size}, chunks={self.chunks})"
 
 
-def Init_Servers(n, m, d, q):
+def Init_Servers(n, m, g ,d, q):
     """
     Utility function that assigns chunks to servers randomly with replication factor `d`.
     Ensures that a chunk is not assigned to the same server more than once and avoids unnecessary loops.
@@ -71,7 +71,7 @@ def Init_Servers(n, m, d, q):
     :return: List of servers with assigned chunks and chunk_to_servers dictionary.
     """
     # Initialize servers
-    servers = [Server(processing_rate=3, max_queue_size=q, server_id=i) for i in range(m)]
+    servers = [Server(processing_rate=g,max_queue_size=q, server_id=i) for i in range(m)]
     
     # Dictionary to track which servers have been assigned a specific chunk
     chunk_to_servers = {i: [] for i in range(n)}  # Maps chunk_id to list of server IDs
