@@ -27,7 +27,19 @@ class Server:
             return True
         else:
             return False
-
+        
+    def evict_chunk(self):
+        """
+        Evicts a chunk from the server to free up space.
+        This will remove the chunk with the highest queue length (cuckoo eviction).
+        
+        :return: The evicted chunk ID or None if no eviction is possible.
+        """
+        if self.queue:
+            evicted_chunk = self.queue.pop(0)  # Remove the first chunk (FIFO eviction)
+            return evicted_chunk
+        return None
+    
     def assign_chunk(self, chunk_id):
         """
         Assign a chunk to this server.

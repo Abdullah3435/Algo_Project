@@ -1,21 +1,42 @@
 import server as se
 import chunk_assignment as ca
 import random
-
+import matplotlib.pyplot as plt
 import time
-import random
-import threading  # To simulate timing for intervals
 
-# Assuming the Server class, Init_Servers, and RandomChunktoRandomServers are already defined
+# --- Parameters ---
+num_servers = 10  # Number of servers
+num_chunks = 10  # Total number of chunks (n)
+d = 2  # Replication factor (each chunk is assigned to d servers)
+total_intervals = 50  # Number of intervals to run the simulation
+chunks_per_interval = 5  # Number of chunks to request per interval
+interval_ms = 1000  # Interval size in milliseconds (e.g., 1 second)
+g = 10  # Server processing power (each server can process 1 request at a time)
+q = 10  # Queue size for each server
+
+# --- Setup ---
+# Initialize servers (assuming `Init_Servers` is in `server.py`)
+servers, chunk_to_servers = se.Init_Servers(num_chunks, num_servers, g, d, q)
+
+# Generate chunk-to-server mapping using `generate_chunk_to_servers_mapping`
+chunk_to_servers = ca.generate_chunk_to_servers_mapping(num_chunks, num_servers, d)
+
+# --- Metrics Collection ---
+metrics = {
+    'intervals': [],
+    'accepted': 0,
+    'rejected': 0,
+    'rejections_by_interval': [],
+    'queue_lengths_by_interval': []
+}
 
 def run_simulation(interval_ms, num_intervals, n, m, d, g, chunk_to_servers, servers):
     """
-    Runs the simulation for a given number of intervals, calling random chunk assignment and processing
-    at each interval.
+    Runs the simulation for a given number of intervals, calling chunk assignment and processing at each interval.
     
     :param interval_ms: The size of each interval in milliseconds.
     :param num_intervals: The total number of intervals to run.
-    :param n: Total number of chunks (from 0 to n-1).
+    :param n: Total number of chunks.
     :param m: Number of servers.
     :param d: Duplication factor (number of servers each chunk is assigned to).
     :param g: Server processing power (each server can process 1 request at a time).
@@ -23,61 +44,66 @@ def run_simulation(interval_ms, num_intervals, n, m, d, g, chunk_to_servers, ser
     :param servers: List of Server objects.
     """
     for interval in range(num_intervals):
-        # Randomly assign chunks to servers at the current interval
-        chunks_list = [random.randint(0, n-1) for _ in range(m)]
-        print(f"\nInterval {interval + 1}: Randomly assigning the following chunks to servers: {chunks_list}")
-        ca.assign_m_chunks_randomly(chunks_list, chunk_to_servers, servers)
-
-        # Simulate the adversary making assignments (optional, based on the adversary logic)
-        print("\nSimulating adversary assigning chunks...")
-        ca.adversary_assign_chunks_g1d1case(n, m, d, g, chunk_to_servers, servers)
-
-        # Process the requests for each server (after chunk assignments)
-        print(f"\nProcessing requests at Interval {interval + 1}...")
-        for server in servers:
-            processed = server.process_request()  # Process up to g requests
-            print(f"Server-{server.server_id} processed: {processed}")
+        # Generate the list of requested chunks for this interval
+        chunks_list = [i % n for i in range(chunks_per_interval)]  # Chunks requested this interval
         
+        # Select the strategy: random or greedy
+        # accepted, rejected = ca.assign_m_chunks_randomly(chunks_list, chunk_to_servers, servers)
+
+        # Or, use the greedy strategy:
+        # accepted, rejected = ca.assign_m_chunks_greedy(chunks_list, chunk_to_servers, servers)
+
+        # Use Cuckoo Routing strategy
+        accepted, rejected = ca.assign_m_chunks_cuckoo(chunks_list, chunk_to_servers, servers)
+        
+        # Update metrics
+        metrics['accepted'] += accepted
+        metrics['rejected'] += rejected
+        metrics['rejections_by_interval'].append(rejected)
+
+        # Track total queue length (to estimate latency)
+        total_queue_length = sum(server.get_queue_status() for server in servers)
+        metrics['queue_lengths_by_interval'].append(total_queue_length)
+        metrics['intervals'].append(interval)
+
         # Print updated server statuses
-        print("\nUpdated Server Assignments and Statuses:")
+        print(f"\nInterval {interval + 1} complete.")
         for server in servers:
             print(server)  # Print the server's chunks and queue status
 
-        # Wait for the next interval (using time.sleep to simulate the interval)
+        # Wait for the next interval (simulate the interval using time.sleep)
         time.sleep(interval_ms / 1000)  # Convert ms to seconds
 
-# Sample usage of the RandomChunktoRandomServers function
+    # --- Print Summary ---
+    total = metrics['accepted'] + metrics['rejected']
+    print("\n--- Simulation Summary ---")
+    print(f"Total Requests: {total}")
+    print(f"Accepted Requests: {metrics['accepted']}")
+    print(f"Rejected Requests: {metrics['rejected']}")
+    print(f"Rejection Rate: {metrics['rejected'] / total:.4f}")
+
+    # --- Plotting the Results ---
+    plt.figure(figsize=(10, 4))
+
+    plt.subplot(1, 2, 1)
+    plt.plot(metrics['intervals'], metrics['queue_lengths_by_interval'], label='Queue Length')
+    plt.xlabel('Interval')
+    plt.ylabel('Total Queue Length')
+    plt.title('Queue Length per Interval')
+    plt.grid(True)
+
+    plt.subplot(1, 2, 2)
+    plt.plot(metrics['intervals'], metrics['rejections_by_interval'], label='Rejections', color='r')
+    plt.xlabel('Interval')
+    plt.ylabel('Rejected Requests')
+    plt.title('Rejections per Interval')
+    plt.grid(True)
+
+    plt.tight_layout()
+    plt.show()
+
+
+# --- Run Simulation ---
 if __name__ == "__main__":
-    n = 10  # Total chunks
-    m = 5     # Number of servers
-    d = 1     # Duplication factor (each chunk assigned to 2 servers)
-    g = 1     # Server processing power (each server can process 1 request at a time)
-    q = 10    # Queue size for each server
-
-    num_intervals = 100  # Number of intervals to run the simulation
-    interval_ms = 10  # Interval size (1 second)
-    
-    # Initialize servers and assign chunks
-    servers, chunk_to_servers = se.Init_Servers(n, m, g ,d, q)
-    
-    # Print initial server assignments
-    print("\nInitial Server Assignments:")
-    for server in servers:
-        print(server)
-    
-    # # Assign m chunks randomly
-    # chunks_list = [random.randint(0, n-1) for _ in range(m)]
-    # print(f"\nRandomly assigning the following chunks to servers: {chunks_list}")
-    # ca.assign_m_chunks_randomly(chunks_list, chunk_to_servers, servers)
-    
-    # # Simulate an adversary filling up the queues
-    # print("\nAdversary making assignments to overload the system...")
-    # ca.adversary_assign_chunks_g1d1case(n, m, d, g, chunk_to_servers, servers)
-    
-    # # Print the updated server assignments
-    # print("\nUpdated Server Assignments:")
-    # for server in servers:
-    #     print(server)
-
-
-    run_simulation(interval_ms, num_intervals, n, m, d, g, chunk_to_servers, servers)
+    # Run the simulation with the given parameters
+    run_simulation(interval_ms, total_intervals, num_chunks, num_servers, d, g, chunk_to_servers, servers)
