@@ -9,9 +9,9 @@ num_servers = 10  # Number of servers
 num_chunks = 10  # Total number of chunks (n)
 d = 2  # Replication factor (each chunk is assigned to d servers)
 total_intervals = 50  # Number of intervals to run the simulation
-chunks_per_interval = 5  # Number of chunks to request per interval
+chunks_per_interval = 10  # Number of chunks to request per interval
 interval_ms = 1000  # Interval size in milliseconds (e.g., 1 second)
-g = 10  # Server processing power (each server can process 1 request at a time)
+g = 1  # Server processing power (each server can process 1 request at a time)
 q = 10  # Queue size for each server
 
 # --- Setup ---
@@ -55,6 +55,11 @@ def run_simulation(interval_ms, num_intervals, n, m, d, g, chunk_to_servers, ser
 
         # Use Cuckoo Routing strategy
         accepted, rejected = ca.assign_m_chunks_cuckoo(chunks_list, chunk_to_servers, servers)
+
+        for server in servers:
+            processed = server.process_request()  # Process up to g requests
+            print(f"Server-{server.server_id} processed: {processed}")
+        
         
         # Update metrics
         metrics['accepted'] += accepted

@@ -1,0 +1,152 @@
+\documentclass{article}
+\usepackage{amsmath,amsfonts,amssymb,geometry}
+\usepackage{graphicx}
+\usepackage{float}
+\geometry{margin=1in}
+
+\title{Distributed Load Balancing in the Face of Reappearance Dependencies}
+\author{Abdullah Khalid (ak08428) \& Ahtisham Uddin (au08429)}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+{\centering
+\section*{Technical Summary}
+}
+
+
+\section{Problem and Contribution}
+The paper addresses the challenge of distributed load balancing in database systems, particularly when data chunks are repeatedly accessed over multiple time steps. Traditional load balancing techniques fail to account for the reappearance dependencies that arise when the same data chunk is accessed multiple times. This leads to server overloading and high rejection rates, as some servers may become consistently oversubscribed. The key contribution of the paper is the design of two algorithms that specifically target this issue:
+\begin{itemize}
+    \item A Greedy Algorithm: Routes requests to the least-loaded server out of multiple available servers for each chunk, minimizing overload.
+    \item Delayed Cuckoo Routing: Utilizes cuckoo hashing to precompute server assignments based on past access patterns, reducing maximum latency and improving queue management.
+\end{itemize}
+
+These algorithms offer solutions that not only minimize request rejection rates and latency but also optimize system performance by considering past access patterns.
+
+
+
+\section*{Implementation Summary}
+
+\subsection*{Initial Setup}
+
+The system operates with the following setup parameters:
+\begin{itemize}
+    \item \textbf{$m$} = number of servers.
+    \item \textbf{$q$} = queue size in each server, representing the maximum number of requests a server can handle before rejecting new ones.
+    \item \textbf{$d$} = duplication factor, indicating the number of servers each chunk is replicated to.
+    \item \textbf{$n$} = total number of data chunks.
+    \item \textbf{$g$} = processing power of each server, or the number of requests each server can handle per time step.
+    \item \textbf{$\sigma$} = the set of client requests generated at each time step.
+    \item \textbf{$T_A(\sigma)$} = the number of accepted requests in the system.
+    \item \textbf{Rejection Rate} = \( \frac{|\sigma| - T_A(\sigma)}{|\sigma|} \), representing the fraction of requests rejected due to overloaded queues.
+    \item \textbf{Latency} = \( LA(\sigma_i) \), the number of time steps it takes for each request to be processed by the server.
+    \item \textbf{Average Latency} = \( \frac{\sum_{i} LA(\sigma_i)}{|\sigma|} \), the average time steps taken for all requests to be processed.
+\end{itemize}
+
+\subsection*{Implementation}
+
+The current implementation simulates a distributed system with a load balancing algorithm. The system handles chunks of data, each replicated across multiple servers. A \textbf{greedy approach} is utilized to route requests to the least-loaded server, balancing the load and minimizing latency. The system addresses \textbf{reappearance dependencies} by ensuring that chunks are distributed efficiently, avoiding overloads. The core components include:
+\begin{itemize}
+    \item \textbf{Server Class}: Models a server that processes requests, manages chunk assignments, and handles a queue of requests.
+    \item \textbf{Random Assignment}: Functions to assign chunks to servers randomly and using the greedy approach to minimize load imbalance.
+    \item \textbf{Simulation Loop}: Executes the random and greedy assignments, processes requests, and prints server status at each interval.
+    \item \textbf{Adversarial Testing}: Simulates an adversary attempting to overwhelm the system by strategically sending requests to vulnerable servers.
+\end{itemize}
+
+The system's main components, such as the server simulation and random chunk assignment, have been successfully tested. However, adversarial testing and integration with real-time processing are still in progress and require more rigorous testing.
+
+\subsection*{Objectives}
+
+The primary objective of the system is to design strategies that minimize:
+\begin{itemize}
+    \item \textbf{Request Rejection Rates}, \textbf{Maximum Latency}, and \textbf{Average Latency}.
+\end{itemize}
+The goal is to ensure that:
+\begin{itemize}
+    \item The maximum latency grows \textbf{logarithmically or sub-logarithmically} in the number of servers $m$.
+    \item The average latency remains \textbf{O(1)}.
+\end{itemize}
+Specifically, the \textbf{delayed cuckoo routing} algorithm aims to achieve \( O(\log \log m) \) maximum latency and \( O(1) \) average latency while maintaining low rejection rates, ensuring efficient load balancing even under adversarial conditions.
+
+
+\section*{Correctness Testing}
+The correctness of the implementation has been verified using several test cases. 
+\begin{itemize}
+    \item \textbf{Basic Test Cases}: We tested random assignment and the greedy algorithm with small numbers of servers and chunks (e.g., $m = 5$ servers, $n = 10$ chunks, $d = 2$ replication factor).
+    \item \textbf{Edge Cases}: We ensured that the system handles queue overflow and tests for chunk distribution imbalance.
+    \item \textbf{Adversarial Testing}: The adversarial simulation tests whether under adversarial case the cuckoo and greedy approach shows expected results or not?
+\end{itemize}
+
+Below is the summary of our current algorithms under NON adversial case instead a random case hence all the cases seems to Not have much difference but in adversial and worst cases we can see major difference on which we are currently working on to simulate. 
+The input is currently the basic test case as shown above and the output is in the form of average server load in the form of filled up queues and average rejection per interval
+
+\begin{figure}[h]  % 'h' means "here", which suggests LaTeX to place the figure here
+    \centering
+    \includegraphics[width=\textwidth]{cuckoo.png}  % Adjust width as needed
+    \caption{Cuckoo Routing }
+    \label{fig:image1}  % Label for referencing the figure later
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\textwidth]{Greedy.jpeg}
+    \caption{Greedy Approach }
+    \label{fig:image2}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{Random.jpeg}
+    \caption{Random Assignment}
+    \label{fig:image3}
+\end{figure}
+
+\section*{Complexity \& Runtime Analysis}
+
+\textbf{Empirical Analysis}:  
+Consider the following scenario with \textbf{10 servers} ($m = 10$) and \textbf{10 chunks} ($n = 10$), where each chunk is replicated across \textbf{5 servers} ($d = 5$). At each time step, \textbf{10 requests} ($M = 10$) are made, corresponding to each chunk. These requests are routed either randomly or using the \textbf{greedy algorithm}.\\
+
+\textbf{Random Assignment}:
+In the \textbf{random assignment} approach, each request is randomly assigned to one of the servers available for the corresponding chunk. This can lead to \textbf{uneven load distribution}.
+
+For example, a chunk might be assigned to the same server repeatedly due to random selection, causing that server to be overloaded while others may not be utilized efficiently. This leads to high backlog on some servers, and these servers may reject requests once they reach their maximum queue capacity, leading to higher rejection rates.\\
+
+\textbf{Greedy Algorithm}:
+In contrast, the \textbf{greedy algorithm} always selects the \textbf{least-loaded server} to handle an incoming request. This ensures that the load is distributed more evenly, as the algorithm constantly seeks to avoid overloading any server.
+
+For instance, when a chunk is assigned to servers, the greedy algorithm checks the backlog of each server and routes the request to the server with the smallest queue size, ensuring better utilization across all servers. This minimizes \textbf{rejection rates} and \textbf{latency}, as no server is overwhelmed by a high backlog of requests.\\
+
+\textbf{Bottlenecks}:  
+While the \textbf{greedy algorithm} offers a better distribution of requests, a potential \textbf{bottleneck} arises due to the need to \textbf{check the backlog of all $m$ servers} for each incoming request. This results in a time complexity of $O(m)$ for each request. To optimize this, a \textbf{priority queue} can be used to track the least-loaded server, reducing the time complexity of finding the appropriate server.\\
+
+\textbf{Theoretical Analysis (Greedy Algorithm Efficiency)}:  
+The \textbf{theoretical proof} that the \textbf{greedy algorithm} achieves \textbf{better load balancing} and minimizes latency has already been established in the research. The proof shows that the greedy approach \textbf{achieves optimal rejection rates} and \textbf{latency bounds}. Specifically:
+\begin{itemize}
+    \item The \textbf{expected rejection rate} of the greedy algorithm is $O(1/poly m)$.
+    \item The \textbf{maximum latency} is guaranteed to be $O(\log m)$, which is logarithmic in the number of servers.
+    \item The \textbf{expected average latency} is $O(1)$, meaning that on average, requests are processed in constant time.
+\end{itemize}
+
+These theoretical results were derived using a \textbf{layered induction technique}, which is restructured to handle \textbf{reappearance dependencies} and prove that the greedy algorithm is effective even under adversarial conditions. The \textbf{union bound} applied during the analysis ensures that reappearance dependencies do not affect the system's overall performance.
+
+
+
+\section*{Challenges \& Solutions}
+\begin{itemize}
+    \item \textbf{Reappearance Dependencies}: Addressed by ensuring dynamic load balancing in the greedy approach, so past accesses do not overload servers.
+    \item \textbf{Adversarial Testing}: Implemented by simulating adversarial requests targeting vulnerable chunks, ensuring the system handles overloads efficiently.
+    \item \textbf{Performance Optimization}: Improved by proposing the use of a priority queue to speed up the greedy approach, minimizing the scanning overhead.
+\end{itemize}
+
+\section*{Enhancements}
+\begin{itemize}
+    \item \textbf{Greedy Algorithm Improvement}: Improved load balancing by dynamically selecting the least-loaded server, reducing rejection rates and balancing the load.
+    \item \textbf{Adversarial Simulation}: Enhanced adversarial testing by strategically targeting vulnerable chunks to test system weaknesses.
+    \item \textbf{Data Set Testing}: Tested the algorithm on different configurations and replication factors to ensure robustness across scenarios.
+    \item \textbf{Priority Queue Implementation}: Suggested the use of a priority queue to track server loads and optimize the greedy algorithm's performance.
+\end{itemize}
+
+\end{document}
