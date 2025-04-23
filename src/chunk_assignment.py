@@ -27,9 +27,12 @@ def assign_chunk_to_random_server(chunk_id, chunk_to_servers, servers):
     # Add the chunk to the server's queue if it's not already there
     for server in servers:
         if server.server_id == random_server_id:
-            server.add_request(chunk_id)
-            break
+            if server.add_request(chunk_id):
+                return True
+            else:
+                return False
 
+    
 
 # def RandomChunktoRandomServers(n, m, d, chunk_to_servers, servers):
 #     """
@@ -89,7 +92,7 @@ def assign_m_chunks_randomly(chunks_list, chunk_to_servers, servers, state=None)
 
 
 
-def adversary_assign_chunks_g1d1case(n, m, d, g, chunk_to_servers, servers):
+def adversary_assign_chunks_g1d1case(m, chunk_to_servers, servers):
     """
     Adversary function that tries to find vulnerable chunks and overload servers by sending requests
     for chunks that would cause server overloads based on the processing power `g` and duplication factor `d`.
@@ -111,6 +114,7 @@ def adversary_assign_chunks_g1d1case(n, m, d, g, chunk_to_servers, servers):
     
     print(f"Overloaded Chunks (assigned to only 1 server): {overloaded_chunks}")
     
+    accepted, rejected = 0, 0
     # Now, the adversary selects `m` chunks from the overloaded ones and sends requests
     for _ in range(m):
         # Randomly pick an overloaded chunk
@@ -125,9 +129,14 @@ def adversary_assign_chunks_g1d1case(n, m, d, g, chunk_to_servers, servers):
             print(f"Adversary sending Chunk {chunk_id} to Server {server_id}.")
             
             # Add the chunk to the selected server's queue using the random assignment function
-            assign_chunk_to_random_server(chunk_id, chunk_to_servers, servers)
+            
 
-    return chunk_to_servers
+            if assign_chunk_to_random_server(chunk_id, chunk_to_servers, servers):
+                accepted += 1
+            else:
+                rejected += 1
+
+    return accepted,rejected
 
 #new
 
