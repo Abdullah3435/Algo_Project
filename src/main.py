@@ -4,44 +4,10 @@ import random
 import matplotlib.pyplot as plt
 import time
 import pprint
+from TestCases import Chunktoservermaps as CTM
 
-# --- Parameters normal---
-
-# num_servers = 10  # Number of servers
-# num_chunks = 10  # Total number of chunks (n)
-# d = 2  # Replication factor (each chunk is assigned to d servers)
-# total_intervals = 50  # Number of intervals to run the simulation
-# chunks_per_interval = 10  # Number of chunks to request per interval
-# interval_ms = 100  # Interval size in milliseconds (e.g., 1 second)
-# g = 1  # Server processing power (each server can process 1 request at a time)
-# q = 10  # Queue size for each server
-
-# # --- Setup ---
-# # Initialize servers (assuming `Init_Servers` is in `server.py`)
-# servers, chunk_to_servers = se.Init_Servers(num_chunks, num_servers, g, d, q)
-
-# # # Generate chunk-to-server mapping using `generate_chunk_to_servers_mapping`
-# # chunk_to_servers = ca.generate_chunk_to_servers_mapping(num_chunks, num_servers, d)
-
-# --- Parameters G1d1---
-
-num_servers = 10  # Number of servers
-num_chunks = 100  # Total number of chunks (n)
-d = 4  # Replication factor (each chunk is assigned to d servers)
-total_intervals = 50  # Number of intervals to run the simulation
-chunks_per_interval = num_servers  # Number of chunks to request per interval
-interval_ms = 100  # Interval size in milliseconds (e.g., 1 second)
-g = 2  # Server processing power (each server can process 1 request at a time)
-q = 10  # Queue size for each server
-
-# --- Setup ---
-# Initialize servers (assuming `Init_Servers` is in `server.py`)
-servers, chunk_to_servers,servers_to_chunks = se.Init_Servers_with_random_chunks(num_chunks, num_servers, g, d, q)
-
-# # Generate chunk-to-server mapping using `generate_chunk_to_servers_mapping`
-# chunk_to_servers = ca.generate_chunk_to_servers_mapping(num_chunks, num_servers, d)
-
-# --- Metrics Collection ---
+# SImulation metrics
+# # --- Metrics Collection ---
 metrics = {
     'intervals': [],
     'accepted': 0,
@@ -50,21 +16,20 @@ metrics = {
     'queue_lengths_by_interval': []
 }
 
-def run_simulation_random(interval_ms, num_intervals, n, m, d, g, chunk_to_servers, servers):
-    
-        # --- Parameters ---
+def run_simulation_random():
+    # --- Parameters ---
     num_servers = 10  # Number of servers
     num_chunks = 10  # Total number of chunks (n)
     d = 2  # Replication factor (each chunk is assigned to d servers)
     total_intervals = 50  # Number of intervals to run the simulation
-    chunks_per_interval = 10  # Number of chunks to request per interval
+    chunks_per_interval = num_servers  # Number of chunks to request per interval
     interval_ms = 100  # Interval size in milliseconds (e.g., 1 second)
     g = 1  # Server processing power (each server can process 1 request at a time)
     q = 10  # Queue size for each server
 
     # --- Setup ---
     # Initialize servers (assuming `Init_Servers` is in `server.py`)
-    servers, chunk_to_servers = se.Init_Servers_with_random_chunks(num_chunks, num_servers, g, d, q)
+    servers, chunk_to_servers,servers_to_chunks = se.Init_Servers_with_random_chunks(num_chunks, num_servers, g, d, q)
 
     print(chunk_to_servers)
     # # Generate chunk-to-server mapping using `generate_chunk_to_servers_mapping`
@@ -79,21 +44,9 @@ def run_simulation_random(interval_ms, num_intervals, n, m, d, g, chunk_to_serve
         'queue_lengths_by_interval': []
     }
 
-    """
-    Runs the simulation for a given number of intervals, calling chunk assignment and processing at each interval.
-    
-    :param interval_ms: The size of each interval in milliseconds.
-    :param num_intervals: The total number of intervals to run.
-    :param n: Total number of chunks.
-    :param m: Number of servers.
-    :param d: Duplication factor (number of servers each chunk is assigned to).
-    :param g: Server processing power (each server can process 1 request at a time).
-    :param chunk_to_servers: Dictionary mapping chunk IDs to lists of server IDs.
-    :param servers: List of Server objects.
-    """
-    for interval in range(num_intervals):
+    for interval in range(total_intervals):
         # Generate the list of requested chunks for this interval
-        chunks_list = [i % n for i in range(chunks_per_interval)]  # Chunks requested this interval
+        chunks_list = [i % num_servers for i in range(chunks_per_interval)]  # Chunks requested this interval
         
         # Select the strategy: random or greedy
         # accepted, rejected = ca.assign_m_chunks_randomly(chunks_list, chunk_to_servers, servers)
@@ -161,35 +114,28 @@ def run_simulation_random(interval_ms, num_intervals, n, m, d, g, chunk_to_serve
 
 
 
-def run_simulation_g1d1_overlaoad(interval_ms, num_intervals, n, m, d, g, chunk_to_servers, servers):
-    """
-    Runs the simulation for a given number of intervals, calling chunk assignment and processing at each interval.
-    
-    :param interval_ms: The size of each interval in milliseconds.
-    :param num_intervals: The total number of intervals to run.
-    :param n: Total number of chunks.
-    :param m: Number of servers.
-    :param d: Duplication factor (number of servers each chunk is assigned to).
-    :param g: Server processing power (each server can process 1 request at a time).
-    :param chunk_to_servers: Dictionary mapping chunk IDs to lists of server IDs.
-    :param servers: List of Server objects.
-    """
-    for interval in range(num_intervals):
+def run_simulation_g1d1_overlaoad():
+        # --- Parameters ---
+    num_servers = 10  # Number of servers
+    num_chunks = 100  # Total number of chunks (n)
+    d = 4  # Replication factor (each chunk is assigned to d servers)
+    total_intervals = 50  # Number of intervals to run the simulation
+    chunks_per_interval = num_servers  # Number of chunks to request per interval CURRENTLY SET = total servers
+    interval_ms = 100  # Interval size in milliseconds (e.g., 1 second)
+    g = 1  # Server processing power (each server can process 1 request at a time)
+    q = 10  # Queue size for each server
+
+    chunk_to_servers = CTM.CTMmap4
+    servers, servers_to_chunks = se.Init_Servers_with_chunk_mapping(num_chunks, num_servers, g, d, q,chunk_to_servers)
+
+    for interval in range(total_intervals):
         # Generate the list of requested chunks for this interval
-        chunks_list = [i % n for i in range(chunks_per_interval)]  # Chunks requested this interval
+        reappearance_chunks_list = CTM.reap_dep_CTMmap4 # reappearance dependency
+
+        chunks_list = [i for i in range(num_chunks)]
         
-        # Select the strategy: random or greedy
-        # accepted, rejected = ca.assign_m_chunks_randomly(chunks_list, chunk_to_servers, servers)
-
-        # Or, use the greedy strategy:
-        # accepted, rejected = ca.assign_m_chunks_greedy(chunks_list, chunk_to_servers, servers)
-
-        # Use Cuckoo Routing strategy
-        accepted, rejected = ca.adversary_assign_chunks_g1d1case(m, chunk_to_servers, servers)
-
-        # accepted, rejected = ca.assign_m_chunks_cuckoo(chunks_list, chunk_to_servers, servers)
-
-        # accepted, rejected = ca.assign_m_chunks_greedy(chunks_list, chunk_to_servers, servers)
+        #accepted, rejected = ca.adversary_assign_chunks_avgcase(num_servers, chunk_to_servers, servers, reappearance_chunks_list, "Random")
+        accepted, rejected = ca.assign_m_chunks_randomly(num_servers , chunk_to_servers, servers, chunks_list)
 
         for server in servers:
             processed = server.process_request()  # Process up to g requests
@@ -246,18 +192,71 @@ def run_simulation_g1d1_overlaoad(interval_ms, num_intervals, n, m, d, g, chunk_
 # --- Run Simulation ---
 
 
-
+# =======================MAIN============================
 
 if __name__ == "__main__":
     # Run the simulation with the given parameters
     #run_simulation_random(interval_ms, total_intervals, num_chunks, num_servers, d, g, chunk_to_servers, servers)
     #--------------------------Run Simulation here--------------------
-
+    run_simulation_g1d1_overlaoad()
 
     # -------------------------Testing Area---------------------------
-    # Initialize servers (assuming `Init_Servers` is in `server.py`)
-    servers, chunk_to_servers, servers_to_chunks = se.Init_Servers_with_random_chunks(num_chunks, num_servers, g, d, q)
+    # # Initialize servers (assuming `Init_Servers` is in `server.py`)
+    # chunk_to_servers = CTM.CTMmap4
 
-    print(chunk_to_servers)
-    for key, value in servers_to_chunks.items():
-        print(f"{key}: {value}")
+    # servers, servers_to_chunks = se.Init_Servers_with_chunk_mapping(num_chunks, num_servers, g, d, q,chunk_to_servers)
+
+    # print(chunk_to_servers)
+    # for key, value in servers_to_chunks.items():
+    #     print(f"{key}: {value}")
+
+#======================MAIN END===========================
+
+
+
+# ========================DEPRECATED UNUSED CODE======================
+
+# --- Parameters normal---
+
+# # num_servers = 10  # Number of servers
+# # num_chunks = 10  # Total number of chunks (n)
+# # d = 2  # Replication factor (each chunk is assigned to d servers)
+# # total_intervals = 50  # Number of intervals to run the simulation
+# # chunks_per_interval = 10  # Number of chunks to request per interval
+# # interval_ms = 100  # Interval size in milliseconds (e.g., 1 second)
+# # g = 1  # Server processing power (each server can process 1 request at a time)
+# # q = 10  # Queue size for each server
+
+# # # --- Setup ---
+# # # Initialize servers (assuming `Init_Servers` is in `server.py`)
+# # servers, chunk_to_servers = se.Init_Servers(num_chunks, num_servers, g, d, q)
+
+# # # # Generate chunk-to-server mapping using `generate_chunk_to_servers_mapping`
+# # # chunk_to_servers = ca.generate_chunk_to_servers_mapping(num_chunks, num_servers, d)
+
+# # --- Parameters G1d1---
+
+# num_servers = 10  # Number of servers
+# num_chunks = 100  # Total number of chunks (n)
+# d = 4  # Replication factor (each chunk is assigned to d servers)
+# total_intervals = 50  # Number of intervals to run the simulation
+# chunks_per_interval = num_servers  # Number of chunks to request per interval
+# interval_ms = 100  # Interval size in milliseconds (e.g., 1 second)
+# g = 2  # Server processing power (each server can process 1 request at a time)
+# q = 10  # Queue size for each server
+
+# # --- Setup ---
+# # Initialize servers (assuming `Init_Servers` is in `server.py`)
+
+
+# # # Generate chunk-to-server mapping using `generate_chunk_to_servers_mapping`
+# # chunk_to_servers = ca.generate_chunk_to_servers_mapping(num_chunks, num_servers, d)
+
+# # --- Metrics Collection ---
+# metrics = {
+#     'intervals': [],
+#     'accepted': 0,
+#     'rejected': 0,
+#     'rejections_by_interval': [],
+#     'queue_lengths_by_interval': []
+# }

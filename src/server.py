@@ -117,44 +117,33 @@ def Init_Servers_with_random_chunks(n, m, g, d, q):
     return servers, chunk_to_servers, server_to_chunks
 
 
-def Init_Servers_with_chunk_mapping(n, m, g ,d, q, chunkmapping):
+def Init_Servers_with_chunk_mapping(n, m, g, d, q, chunkmapping):
     """
-    Utility function that assigns chunks to servers randomly with replication factor `d`.
-    Ensures that a chunk is not assigned to the same server more than once and avoids unnecessary loops.
-    
+    Utility function that assigns chunks to servers using a provided chunk-to-server mapping.
+    Converts this mapping to a server-to-chunk mapping.
+
     :param n: Total number of chunks (from 0 to n-1).
     :param m: Number of servers.
+    :param g: Processing rate for each server.
     :param d: Number of servers a chunk should be assigned to (duplication factor).
     :param q: Queue length of each server.
-    :param chunkmapping : 
-    :return: List of servers with assigned chunks and chunk_to_servers dictionary.
+    :param chunkmapping: Dictionary mapping each chunk to the servers it is assigned to.
+    :return: List of servers with assigned chunks and server_to_chunks mapping.
     """
     # Initialize servers
-    servers = [Server(processing_rate=g,max_queue_size=q, server_id=i) for i in range(m)]
+    servers = [Server(processing_rate=g, max_queue_size=q, server_id=i) for i in range(m)]
     
     # Dictionary to track which servers have been assigned a specific chunk
-    chunk_to_servers = {i: [] for i in range(n)}  # Maps chunk_id to list of server IDs
+    # This is now replaced by using chunkmapping directly
+    # The output will be the server-to-chunk mapping
+    server_to_chunks = {i: [] for i in range(m)}  # Maps server_id to list of chunk_ids
     
-    # Randomly assign chunks to servers
-    for chunk_id in range(n):
-        assigned_servers = []
-        
-        # Shuffle the server IDs to get random servers
-        available_servers = list(range(m))
-        random.shuffle(available_servers)
-        
-        # Assign chunk to up to d unique servers
-        for server_id in available_servers:
-            if len(assigned_servers) < d and server_id not in chunk_to_servers[chunk_id]:
-                assigned_servers.append(server_id)
-                chunk_to_servers[chunk_id].append(server_id)  # Mark this server as assigned this chunk
-                servers[server_id].assign_chunk(chunk_id)
-                
-            if len(assigned_servers) == d:
-                break
-        
-        # If we couldn't assign d servers (in edge cases), we skip the chunk or handle it accordingly
-        if len(assigned_servers) < d:
-            print(f"Warning: Chunk {chunk_id} could not be assigned to {d} servers.")
+    # Iterate over the chunk-to-server mapping and assign the chunks to servers
+    for chunk_id, assigned_servers in chunkmapping.items():
+        for server_id in assigned_servers:
+            # Add chunk to the server's list
+            server_to_chunks[server_id].append(chunk_id)
+            # Assign the chunk to the server
+            servers[server_id].assign_chunk(chunk_id)
     
-    return servers, chunk_to_servers
+    return servers, server_to_chunks

@@ -68,22 +68,16 @@ def generate_chunk_to_servers_mapping(n, m, d):
 
 
 
-def assign_m_chunks_randomly(chunks_list, chunk_to_servers, servers, state=None):
+def assign_m_chunks_randomly(m, chunk_to_servers, servers,chunks_list, state=None):
     """
     Random strategy: route each chunk request to a random one of its d replica servers.
     Returns accepted and rejected counts.
     """
-    server_dict = {s.server_id: s for s in servers}
     accepted, rejected = 0, 0
 
-    for chunk_id in chunks_list:
-        servers_for_chunk = chunk_to_servers.get(chunk_id, [])
-        if not servers_for_chunk:
-            continue
-
-        chosen_server_id = random.choice(servers_for_chunk)
-        server = server_dict[chosen_server_id]
-        if server.add_request(chunk_id):
+    for _ in range(m):
+        chunk_id = random.choice(chunks_list)
+        if assign_chunk_to_random_server(chunk_id,chunk_to_servers,servers):
             accepted += 1
         else:
             rejected += 1
@@ -138,28 +132,67 @@ def adversary_assign_chunks_g1d1case(m, chunk_to_servers, servers):
 
     return accepted,rejected
 
+def adversary_assign_chunks_avgcase(m, chunk_to_servers, servers, chunklist, Strategy = "None"):
+    """
+    Adversary function that tries to find vulnerable chunks and overload servers by sending requests
+    for chunks that would cause server overloads based on the processing power `g` and duplication factor `d`.
+    
+    :param n: Total number of chunks (from 0 to n-1).
+    :param m: Number of servers.
+    :param d: Duplication factor (number of servers each chunk is assigned to).
+    :param g: Server processing power (requests the server can process).
+    :param chunk_to_servers: Dictionary mapping chunk IDs to lists of server IDs.
+    :param servers: List of Server objects.
+    """
+
+    if (Strategy not in ["Random", "Greedy", "Cuckoo"]):
+        print ("NO VALID STRATEGY SELECTED FOR ADVESARY CHUNK ASSIGNMENT choose Greedy, Cuckoo or Random")
+        return 0,0
+    
+    accepted, rejected = 0, 0
+    # Now, the adversary selects `m` chunks from the overloaded ones and sends requests
+    for chunk_id in chunklist:
+            
+        # Add the chunk to the selected server's queue using the random assignment function
+        if (Strategy == "Random"):
+            if assign_chunk_to_random_server(chunk_id, chunk_to_servers, servers):
+                accepted += 1
+            else:
+                rejected += 1
+
+        elif (Strategy == "Greedy"):
+            if assign_m_chunk_greedy(chunk_id, chunk_to_servers, servers):
+                accepted += 1
+            else:
+                rejected += 1
+
+        elif (Strategy == "Cuckoo"):
+            if assign_chunk_to_random_server(chunk_id, chunk_to_servers, servers): # TODO later
+                accepted += 1
+            else:
+                rejected += 1
+
+    return accepted,rejected
+
 #new
 
-def assign_m_chunks_greedy(chunks_list, chunk_to_servers, servers, state=None):
+def assign_m_chunk_greedy(chunk_id, chunk_to_servers, servers, state=None):
     server_dict = {server.server_id: server for server in servers}
-    accepted, rejected = 0, 0
 
-    for chunk_id in chunks_list:
-        assigned_server_ids = chunk_to_servers.get(chunk_id, [])
-        valid_servers = [server_dict[sid] for sid in assigned_server_ids]
+    assigned_server_ids = chunk_to_servers.get(chunk_id, [])
+    valid_servers = [server_dict[sid] for sid in assigned_server_ids]
 
-        if not valid_servers:
-            continue
+    if not valid_servers:
+        return "No valid servers for greedy assignment"
 
-        best_server = min(valid_servers, key=lambda s: s.get_queue_status())
-        success = best_server.add_request(chunk_id)
+    best_server = min(valid_servers, key=lambda s: s.get_queue_status())
+    success = best_server.add_request(chunk_id)
 
-        if success:
-            accepted += 1
-        else:
-            rejected += 1
+    if success:
+        return True
+    else:
+        return False
 
-    return accepted, rejected
 
 #new
 
