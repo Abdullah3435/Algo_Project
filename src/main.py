@@ -115,27 +115,37 @@ def run_simulation_random():
 
 
 def run_simulation_g1d1_overlaoad():
-        # --- Parameters ---
-    num_servers = 10  # Number of servers
-    num_chunks = 100  # Total number of chunks (n)
-    d = 4  # Replication factor (each chunk is assigned to d servers)
-    total_intervals = 50  # Number of intervals to run the simulation
+    #     # --- Parameters Test case 2---
+    # num_servers = 10  # Number of servers
+    # num_chunks = 100  # Total number of chunks (n)
+    # d = 4  # Replication factor (each chunk is assigned to d servers)
+    # total_intervals = 50  # Number of intervals to run the simulation
+    # chunks_per_interval = num_servers  # Number of chunks to request per interval CURRENTLY SET = total servers
+    # interval_ms = 100  # Interval size in milliseconds (e.g., 1 second)
+    # g = 1  # Server processing power (each server can process 1 request at a time)
+    # q = 10  # Queue size for each server
+
+     # --- Parameters Test case 3---
+    num_servers = 256  # Number of servers
+    num_chunks = 1000  # Total number of chunks (n)
+    d = 2  # Replication factor (each chunk is assigned to d servers)
+    total_intervals = 100  # Number of intervals to run the simulation
     chunks_per_interval = num_servers  # Number of chunks to request per interval CURRENTLY SET = total servers
     interval_ms = 100  # Interval size in milliseconds (e.g., 1 second)
-    g = 1  # Server processing power (each server can process 1 request at a time)
-    q = 10  # Queue size for each server
+    g = 4  # Server processing power (each server can process 1 request at a time)
+    q = 8  # Queue size for each server log (m) = log (256)
 
-    chunk_to_servers = CTM.CTMmap4
+    chunk_to_servers = CTM.CTMmap5
     servers, servers_to_chunks = se.Init_Servers_with_chunk_mapping(num_chunks, num_servers, g, d, q,chunk_to_servers)
 
     for interval in range(total_intervals):
         # Generate the list of requested chunks for this interval
-        reappearance_chunks_list = CTM.reap_dep_CTMmap4 # reappearance dependency
+        reappearance_chunks_list = CTM.reap_dep_CTMmap5_SEVERE # reappearance dependency
 
         chunks_list = [i for i in range(num_chunks)]
         
-        #accepted, rejected = ca.adversary_assign_chunks_avgcase(num_servers, chunk_to_servers, servers, reappearance_chunks_list, "Random")
-        accepted, rejected = ca.assign_m_chunks_randomly(num_servers , chunk_to_servers, servers, chunks_list)
+        accepted, rejected = ca.adversary_assign_chunks_avgcase(num_servers, chunk_to_servers, servers, reappearance_chunks_list, "Random")
+       # accepted, rejected = ca.assign_m_chunks_randomly(num_servers , chunk_to_servers, servers, chunks_list)
 
         for server in servers:
             processed = server.process_request()  # Process up to g requests
@@ -148,8 +158,8 @@ def run_simulation_g1d1_overlaoad():
         metrics['rejections_by_interval'].append(rejected)
 
         # Track total queue length (to estimate latency)
-        total_queue_length = sum(server.get_queue_status() for server in servers)
-        metrics['queue_lengths_by_interval'].append(total_queue_length)
+        total_avg_queue_length = sum(server.get_queue_status() for server in servers) / num_servers
+        metrics['queue_lengths_by_interval'].append(total_avg_queue_length)
         metrics['intervals'].append(interval)
 
         # Print updated server statuses
@@ -158,7 +168,7 @@ def run_simulation_g1d1_overlaoad():
             print(server)  # Print the server's chunks and queue status
 
         # Wait for the next interval (simulate the interval using time.sleep)
-        time.sleep(interval_ms / 1000)  # Convert ms to seconds
+        # time.sleep(interval_ms / 1000)  # Convert ms to seconds
 
     # --- Print Summary ---
     total = metrics['accepted'] + metrics['rejected']
@@ -173,7 +183,7 @@ def run_simulation_g1d1_overlaoad():
 
     plt.subplot(1, 2, 1)
     plt.plot(metrics['intervals'], metrics['queue_lengths_by_interval'], label='Queue Length')
-    plt.xlabel('Interval')
+    plt.xlabel('Interval') 
     plt.ylabel('Total Queue Length')
     plt.title('Queue Length per Interval')
     plt.grid(True)
@@ -198,14 +208,27 @@ if __name__ == "__main__":
     # Run the simulation with the given parameters
     #run_simulation_random(interval_ms, total_intervals, num_chunks, num_servers, d, g, chunk_to_servers, servers)
     #--------------------------Run Simulation here--------------------
-    run_simulation_g1d1_overlaoad()
+     run_simulation_g1d1_overlaoad()
 
     # -------------------------Testing Area---------------------------
     # # Initialize servers (assuming `Init_Servers` is in `server.py`)
     # chunk_to_servers = CTM.CTMmap4
 
+    # --- Parameters ---
+    # num_servers = 256  # Number of servers
+    # num_chunks = 1000  # Total number of chunks (n)
+    # d = 2  # Replication factor (each chunk is assigned to d servers)
+    # total_intervals = 50  # Number of intervals to run the simulation
+    # chunks_per_interval = num_servers  # Number of chunks to request per interval CURRENTLY SET = total servers
+    # interval_ms = 100  # Interval size in milliseconds (e.g., 1 second)
+    # g = 4  # Server processing power (each server can process 1 request at a time)
+    # q = 8  # Queue size for each server log (m) = log (256)
+
+    # chunk_to_servers = CTM.CTMmap5
     # servers, servers_to_chunks = se.Init_Servers_with_chunk_mapping(num_chunks, num_servers, g, d, q,chunk_to_servers)
 
+    # #servers,chunk_to_servers,servers_to_chunks = se.Init_Servers_with_random_chunks(num_chunks,num_servers,g,d,q)
+    
     # print(chunk_to_servers)
     # for key, value in servers_to_chunks.items():
     #     print(f"{key}: {value}")

@@ -167,7 +167,8 @@ def adversary_assign_chunks_avgcase(m, chunk_to_servers, servers, chunklist, Str
                 rejected += 1
 
         elif (Strategy == "Cuckoo"):
-            if assign_chunk_to_random_server(chunk_id, chunk_to_servers, servers): # TODO later
+            server_dict = {s.server_id: s for s in servers}
+            if cuckoo_route(chunk_id, chunk_to_servers, servers,server_dict): # TODO later
                 accepted += 1
             else:
                 rejected += 1
