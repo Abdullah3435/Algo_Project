@@ -132,7 +132,7 @@ def adversary_assign_chunks_g1d1case(m, chunk_to_servers, servers):
 
     return accepted,rejected
 
-def adversary_assign_chunks_avgcase(m, chunk_to_servers, servers, chunklist, Strategy = "None"):
+def adversary_assign_chunks_avgcase(m, chunk_to_servers, servers, chunklist, Strategy = "None", J=3 ):
     """
     Adversary function that tries to find vulnerable chunks and overload servers by sending requests
     for chunks that would cause server overloads based on the processing power `g` and duplication factor `d`.
@@ -168,7 +168,7 @@ def adversary_assign_chunks_avgcase(m, chunk_to_servers, servers, chunklist, Str
 
         elif (Strategy == "Cuckoo"):
             server_dict = {s.server_id: s for s in servers}
-            if cuckoo_route(chunk_id, chunk_to_servers, servers,server_dict): # TODO later
+            if cuckoo_route(chunk_id, chunk_to_servers, servers,server_dict,J): 
                 accepted += 1
             else:
                 rejected += 1
@@ -197,79 +197,57 @@ def assign_m_chunk_greedy(chunk_id, chunk_to_servers, servers, state=None):
 
 #new
 
-def cuckoo_route(chunk_id, chunk_to_servers, servers, server_dict):
+# Global Variables
+I = 0  # Global counter for time steps within a phase
+History = {}  # Global dictionary to track chunk-to-server history
+
+def cuckoo_route(chunk_id, chunk_to_servers, servers, server_dict, j):
     """
-    Implements the cuckoo routing for chunk assignment with evictions.
-    If the server is full, the chunk evicts another chunk to make space.
-    
-    :param chunk_id: The chunk ID to route.
-    :param chunk_to_servers: Dictionary mapping chunk IDs to lists of server IDs.
-    :param servers: List of Server objects.
-    :param server_dict: Dictionary mapping server IDs to Server objects.
-    :return: Boolean indicating if the chunk was successfully assigned or evicted.
+    Cuckoo routing function that applies cuckoo routing logic and tracks historical chunk-to-server mapping.
+    If I exceeds or touches J, flushes all historical data.
+
+    :param chunk_id: The ID of the chunk being requested.
+    :param chunk_to_servers: Global dictionary to track chunk-to-server mappings.
+    :param servers: List of server objects.
+    :param server_dict: Dictionary to track chunk assignments.
+    :param j: The phase limit (maximum value for I).
     """
-    assigned_server_ids = chunk_to_servers.get(chunk_id, [])
-    
-    # If the chunk is assigned to only one server
-    if len(assigned_server_ids) == 1:
-        server = server_dict[assigned_server_ids[0]]
-        if server.add_request(chunk_id):
-            return True  # Chunk was successfully added
-        else:
-            return False  # No space in the single assigned server
+    global I
+    # Check if chunk_id is already in historical data (chunk_to_servers)
+    if chunk_id not in History:
+        server_dict = {server.server_id: server for server in servers}
+
+        assigned_server_ids = chunk_to_servers.get(chunk_id, [])
+        valid_servers = [server_dict[sid] for sid in assigned_server_ids]
+
+        if not valid_servers:
+            return "No valid servers for greedy assignment"
+
+        best_server = min(valid_servers, key=lambda s: s.get_queue_status())
+        res = best_server.add_to_Q(chunk_id)
+
+        # Log the chunk-server mapping in history
+        History[chunk_id] = best_server
     else:
-        # If there are multiple servers assigned, attempt to place it on any of them
-        for server_id in assigned_server_ids:
-            server = server_dict[server_id]
-            if server.add_request(chunk_id):
-                return True  # Chunk was successfully added
+        # If the chunk is in history, use the historical chunk-to-server mapping
+        # assigned_server_id = History[chunk_id]
 
-        # If all assigned servers are full, start evicting
-        for server_id in assigned_server_ids:
-            server = server_dict[server_id]
-            evicted_chunk = server.evict_chunk()
-            if evicted_chunk:
-                print(f"Evicted chunk {evicted_chunk} from Server {server_id}")
+        res = History[chunk_id].add_to_P(chunk_id)  # Add to P queue for repeated requests
 
-                # Ensure evicted chunk is removed from the previous server list
-                if server_id in chunk_to_servers[evicted_chunk]:
-                    chunk_to_servers[evicted_chunk].remove(server_id)
-                    print(f"Removed Server {server_id} from chunk {evicted_chunk}'s list.")
-                    
-                # Reassign evicted chunk to a new server (randomly choosing from the assigned servers)
-                # Avoid selecting the evicting server if only one server is assigned
-                available_servers = [sid for sid in assigned_server_ids if sid != server_id]
-                if available_servers:  # Ensure there are other servers to assign
-                    new_server_id = random.choice(available_servers)
-                    chunk_to_servers[evicted_chunk].append(new_server_id)
-                    print(f"Reassigned evicted chunk {evicted_chunk} to Server {new_server_id}")
-                else:
-                    print(f"No available servers to reassign evicted chunk {evicted_chunk}, skipping reassignment.")
-                
-                # Try to add the new chunk after eviction
-                if server.add_request(chunk_id):
-                    return True  # Successfully added the chunk after eviction
-        
-    return False  # No available space or successful eviction
+    # Increment the global counter I each time the function is called
+    I += 1
 
-def assign_m_chunks_cuckoo(chunks_list, chunk_to_servers, servers, state=None):
+    # If we've reached the end of the current phase (I == J), reset historical data
+    if I >= j:
+        flush_history()
+
+    return res
+
+def flush_history():
     """
-    Cuckoo routing strategy: routes chunk requests using cuckoo-style eviction.
-    
-    :param chunks_list: List of chunk IDs to assign.
-    :param chunk_to_servers: Dictionary mapping chunk IDs to lists of server IDs.
-    :param servers: List of Server objects.
-    :param state: Optional state for cuckoo algorithm (not used in this case).
-    :return: Accepted and rejected counts.
+    Flush the global historical data and reset the global counter I.
     """
-    server_dict = {s.server_id: s for s in servers}
-    accepted, rejected = 0, 0
-    
-    for chunk_id in chunks_list:
-        if cuckoo_route(chunk_id, chunk_to_servers, servers, server_dict):
-            accepted += 1
-        else:
-            rejected += 1
-
-    return accepted, rejected
-
+    global I, History
+    print("Flushing historical data...")  # For logging purposes
+    History.clear()  # Clear the historical mapping
+    I = 0  # Reset the global counter I
