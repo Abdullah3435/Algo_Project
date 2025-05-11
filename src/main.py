@@ -131,7 +131,7 @@ def run_simulation_g1d1_overlaoad():
     num_servers = 256  # Number of servers
     num_chunks = 1000  # Total number of chunks (n)
     d = 2  # Replication factor (each chunk is assigned to d servers)
-    total_intervals = 2000  # Number of intervals to run the simulation
+    total_intervals = 10  # Number of intervals to run the simulation
     chunks_per_interval = num_servers  # Number of chunks to request per interval CURRENTLY SET = total servers
     interval_ms = 100  # Interval size in milliseconds (e.g., 1 second)
     g = 4  # Server processing power (each server can process 1 request at a time)
@@ -146,7 +146,7 @@ def run_simulation_g1d1_overlaoad():
 
     for interval in range(total_intervals):
         # Generate the list of requested chunks for this interval
-        reappearance_chunks_list = CTM.reap_dep_CTMmap5_SEVERE # reappearance dependency
+        reappearance_chunks_list = CTM.reap_dep_CTMmap6_Greedy_Vul # reappearance dependency
 
         chunks_list = [i for i in range(num_chunks)]
         
@@ -155,6 +155,7 @@ def run_simulation_g1d1_overlaoad():
 
         for server in servers:
             processed = server.process_request()  # Process up to g requests
+
             print(f"Server-{server.server_id} processed: {processed}")
         
         
